@@ -1,0 +1,165 @@
+/* Help Button */
+.help-btn {
+    position: absolute;
+    top: var(--spacing-md);
+    left: var(--spacing-md);
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.help-btn:hover {
+    transform: scale(1.15);
+}
+
+.help-btn .icon {
+    color: white;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* Help Popup Overlay */
+.help-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 2000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.help-popup-overlay.show {
+    opacity: 1;
+}
+
+/* Help Popup */
+.help-popup {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-width: 600px;
+    margin: 0 auto;
+    background: white;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.help-popup-overlay.show .help-popup {
+    transform: translateY(0);
+}
+
+/* Help Header */
+.help-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-lg);
+    border-bottom: 2px solid var(--color-border);
+    background: linear-gradient(135deg, #F5E6D3 0%, #E8D4B8 100%);
+}
+
+.help-header h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #8B6F47;
+}
+
+.help-close-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(212, 165, 116, 0.2);
+    color: #8B6F47;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.help-close-btn:hover {
+    background: rgba(212, 165, 116, 0.3);
+    transform: scale(1.1);
+}
+
+.help-close-btn .icon {
+    color: #8B6F47;
+}
+
+/* Help Content */
+.help-content {
+    padding: var(--spacing-lg);
+    overflow-y: auto;
+    flex: 1;
+}
+
+.help-section {
+    margin-bottom: var(--spacing-lg);
+}
+
+.help-section:last-child {
+    margin-bottom: 0;
+}
+
+.help-section h4 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #8B6F47;
+    margin: 0 0 var(--spacing-sm) 0;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.help-section h4 .icon {
+    color: #D4A574;
+}
+
+.help-section p {
+    margin: 0;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+}
+
+.help-section ul {
+    margin: var(--spacing-xs) 0 0 0;
+    padding-left: var(--spacing-lg);
+}
+
+.help-section li {
+    margin-bottom: var(--spacing-xs);
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+}
+
+.help-section li:last-child {
+    margin-bottom: 0;
+}
+/* Help Copyright */
+.help-copyright {
+    margin-top: var(--spacing-xl);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--color-border);
+    text-align: center;
+    font-size: 12px;
+    color: var(--color-text-tertiary);
+}

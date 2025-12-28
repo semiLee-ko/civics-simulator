@@ -1,7 +1,9 @@
 import './style.css';
+import './helpPopup.css';
 import { simulateRule, RANDOM_RULES } from './ai.js';
 import { getIcon } from './icons.js';
 import { getCharacterImage } from './characters.js';
+import blockedWordsData from './blockedWords.json';
 
 // DOM Elements
 let ruleInput;
@@ -29,6 +31,9 @@ function renderInputPage() {
     <div class="page-container input-page">
       <div class="main-image-section">
         <img src="/images/mainBg.png" alt="고양이 마을" class="main-bg-image" />
+        <button class="help-btn" id="helpBtn" title="도움말">
+          <span class="icon icon-md">${getIcon('help')}</span>
+        </button>
         <div class="main-image-overlay">
           <h1 class="village-name">우당탕냥 마을</h1>
           <p class="village-subtitle">시장님, 어떤 정책을 선포할까요?</p>
@@ -83,6 +88,9 @@ function renderInputPage() {
   ruleInput.addEventListener('input', () => {
     simulateBtn.disabled = !ruleInput.value.trim();
   });
+
+  // Help button listener
+  document.getElementById('helpBtn').addEventListener('click', showHelpPopup);
 
   // Show initial message after typing animation
   showInitialMessage();
@@ -199,6 +207,24 @@ function toggleRandomCards() {
   }, 1500);
 }
 
+// Check for blocked words
+function containsBlockedWords(text) {
+  const lowerText = text.toLowerCase();
+  const allBlockedWords = [
+    ...blockedWordsData.profanity,
+    ...blockedWordsData.violence,
+    ...blockedWordsData.sensitive
+  ];
+
+  for (const word of allBlockedWords) {
+    if (lowerText.includes(word)) {
+      return { blocked: true, word };
+    }
+  }
+
+  return { blocked: false };
+}
+
 // Validate rule input
 function validateRuleInput(rule) {
   // Check length
@@ -216,6 +242,15 @@ function validateRuleInput(rule) {
     return { valid: false, message: '허용되지 않은 문자가 포함되어 있습니다!\n한글, 영어, 숫자, 일부 특수문자만 사용 가능합니다.' };
   }
 
+  // Check for blocked words
+  const blockedCheck = containsBlockedWords(rule);
+  if (blockedCheck.blocked) {
+    return {
+      valid: false,
+      message: `이 규칙은 사용할 수 없어요.\n대신 다른 재미있는 규칙을 생각해볼까요?`
+    };
+  }
+
   return { valid: true };
 }
 
@@ -225,7 +260,9 @@ function showCustomAlert(message) {
   modal.className = 'custom-alert-overlay';
   modal.innerHTML = `
     <div class="custom-alert">
-      <div class="alert-icon">⚠️</div>
+      <div class="alert-icon">
+        <span class="icon icon-xl">${getIcon('alert')}</span>
+      </div>
       <div class="alert-message">${message.replace(/\n/g, '<br>')}</div>
       <button class="alert-button" id="alertCloseBtn">확인</button>
     </div>
@@ -244,6 +281,72 @@ function showCustomAlert(message) {
     if (e.target === modal) {
       modal.classList.remove('show');
       setTimeout(() => modal.remove(), 300);
+    }
+  });
+}
+
+// Show help popup
+function showHelpPopup() {
+  const helpPopup = document.createElement('div');
+  helpPopup.className = 'help-popup-overlay';
+  helpPopup.innerHTML = `
+    <div class="help-popup">
+      <div class="help-header">
+        <h3>도움말</h3>
+        <button class="help-close-btn" id="helpCloseBtn">
+          <span class="icon icon-md">${getIcon('close')}</span>
+        </button>
+      </div>
+      <div class="help-content">
+        <div class="help-section">
+          <h4><span class="icon icon-sm">${getIcon('target')}</span> 게임 방법</h4>
+          <p>우당탕냥 마을의 시장이 되어 새로운 규칙을 만들어보세요!</p>
+        </div>
+        
+        <div class="help-section">
+          <h4><span class="icon icon-sm">${getIcon('edit')}</span> 규칙 입력하기</h4>
+          <ul>
+            <li>아래 입력창에 원하는 규칙을 입력하세요</li>
+            <li>주사위 버튼을 눌러 예시 규칙을 볼 수 있어요</li>
+            <li>규칙은 50자 이내로 입력해주세요</li>
+          </ul>
+        </div>
+        
+        <div class="help-section">
+          <h4><span class="icon icon-sm">${getIcon('search')}</span> 시뮬레이션 보기</h4>
+          <ul>
+            <li>1주일 후, 1개월 후, 1년 후의 변화를 확인하세요</li>
+            <li>행복도, 혼란도, 경제 지표를 살펴보세요</li>
+            <li>주민들의 인터뷰를 읽어보세요</li>
+          </ul>
+        </div>
+        
+        <div class="help-section">
+          <h4><span class="icon icon-sm">${getIcon('trophy')}</span> 배지 획득</h4>
+          <p>시뮬레이션을 완료하면 특별한 배지를 받을 수 있어요!</p>
+        </div>
+        
+        <div class="help-copyright">
+          © 2025 CODA Creative. All rights reserved.
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(helpPopup);
+  setTimeout(() => helpPopup.classList.add('show'), 10);
+
+  // Close button listener
+  document.getElementById('helpCloseBtn').addEventListener('click', () => {
+    helpPopup.classList.remove('show');
+    setTimeout(() => helpPopup.remove(), 300);
+  });
+
+  // Close on overlay click
+  helpPopup.addEventListener('click', (e) => {
+    if (e.target === helpPopup) {
+      helpPopup.classList.remove('show');
+      setTimeout(() => helpPopup.remove(), 300);
     }
   });
 }
@@ -546,22 +649,115 @@ function nextPhase() {
 }
 
 function showBadge() {
-  const { badge } = simulationData;
+  const { badge, phase_3, summary } = simulationData;
+
+  // Determine which level card to use based on total_score
+  const score = badge.total_score || 50; // Default to level 3 if not provided
+  let levelImage = 'level3.png';
+
+  if (score <= 20) levelImage = 'level1.png';
+  else if (score <= 40) levelImage = 'level2.png';
+  else if (score <= 60) levelImage = 'level3.png';
+  else if (score <= 80) levelImage = 'level4.png';
+  else levelImage = 'level5.png';
 
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.innerHTML = `
-    <div class="modal-content badge-modal">
+    <div class="modal-content badge-card-container">
+      <button class="modal-download-btn" id="downloadBadgeBtn" title="배지 저장">
+        <span class="icon icon-md">${getIcon('download')}</span>
+      </button>
       <button class="modal-close-btn" id="closeBadgeBtn">
         <span class="icon icon-md">${getIcon('close')}</span>
       </button>
-      <div class="badge-emoji-large">${badge.emoji}</div>
-      <div class="badge-title-large"><span class="icon icon-lg">${getIcon('trophy')}</span> ${badge.title}</div>
-      <div class="badge-description-large">${badge.description}</div>
+      
+      <img src="/images/${levelImage}" alt="Badge Card" class="badge-card-image" />
+      
+      <!-- Badge Title - Positioned on ribbon below star -->
+      <div class="badge-title-text">${badge.title}</div>
+      
+      <!-- Badge Description - Positioned below village image -->
+      <div class="badge-description-text">${badge.description}</div>
+      
+      <!-- Metrics - Positioned in middle gray box -->
+      <div class="badge-metrics-container">
+        <div class="badge-metric-item">
+          <span class="metric-label">행복도</span>
+          <span class="metric-value">${phase_3.happiness}</span>
+        </div>
+        <div class="badge-metric-item">
+          <span class="metric-label">혼란도</span>
+          <span class="metric-value">${phase_3.chaos}</span>
+        </div>
+        <div class="badge-metric-item">
+          <span class="metric-label">경제</span>
+          <span class="metric-value">${phase_3.wealth}</span>
+        </div>
+      </div>
+      
+      <!-- Summary - Positioned in bottom gray box -->
+      <div class="badge-summary-text">
+        ${summary}
+      </div>
     </div>
   `;
 
   document.body.appendChild(modal);
+
+  // Download button handler
+  document.getElementById('downloadBadgeBtn').addEventListener('click', async () => {
+    const badgeContainer = modal.querySelector('.badge-card-container');
+    const downloadBtn = document.getElementById('downloadBadgeBtn');
+    const closeBtn = document.getElementById('closeBadgeBtn');
+
+    try {
+      // Hide buttons during capture
+      downloadBtn.style.display = 'none';
+      closeBtn.style.display = 'none';
+
+      // Disable animations to prevent text cutoff
+      const titleText = badgeContainer.querySelector('.badge-title-text');
+      const descText = badgeContainer.querySelector('.badge-description-text');
+      if (titleText) titleText.style.animation = 'none';
+      if (descText) descText.style.animation = 'none';
+
+      // Wait for DOM update
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Use html2canvas to capture the badge
+      const html2canvas = (await import('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/+esm')).default;
+
+      const canvas = await html2canvas(badgeContainer, {
+        backgroundColor: null,
+        scale: 2, // Higher quality
+        logging: false,
+        useCORS: true
+      });
+
+      // Restore buttons and animations
+      downloadBtn.style.display = '';
+      closeBtn.style.display = '';
+      if (titleText) titleText.style.animation = '';
+      if (descText) descText.style.animation = '';
+
+      // Convert to blob and download
+      canvas.toBlob((blob) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = `배지-${badge.title}.png`;
+        link.href = url;
+        link.click();
+        URL.revokeObjectURL(url);
+      });
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Restore buttons even on error
+      downloadBtn.style.display = '';
+      closeBtn.style.display = '';
+      alert('배지 저장에 실패했습니다.');
+    }
+  });
 
   document.getElementById('closeBadgeBtn').addEventListener('click', () => {
     modal.classList.remove('show');

@@ -681,7 +681,7 @@ body {
 
 .modal-content {
     background: white;
-    border-radius: var(--radius-xl);
+    border-radius: 12px;
     padding: var(--spacing-xl);
     max-width: 400px;
     width: 100%;
@@ -694,48 +694,124 @@ body {
     transform: scale(1);
 }
 
-/* Badge Modal */
-.badge-modal {
+/* Badge Card Container */
+.badge-card-container {
+    position: relative;
+    width: 512px;
+    height: 768px;
+    max-width: 90vw;
+    max-height: 90vh;
+    padding: 0;
+    background: transparent;
+    overflow: visible;
+}
+
+.badge-card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+/* Badge Title - Positioned on ribbon area (below star) */
+.badge-title-text {
+    position: absolute;
+    top: 54%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70%;
     text-align: center;
-    background: linear-gradient(135deg, #FFD89B 0%, #19547B 100%);
-    color: white;
-}
-
-.badge-emoji-large {
-    font-size: 96px;
-    margin-bottom: var(--spacing-md);
-    animation: bounceIn 0.6s ease;
-}
-
-@keyframes bounceIn {
-    0% {
-        transform: scale(0);
-    }
-
-    50% {
-        transform: scale(1.1);
-    }
-
-    100% {
-        transform: scale(1);
-    }
-}
-
-.badge-title-large {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 800;
-    margin-bottom: var(--spacing-sm);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--spacing-xs);
+    color: #945617;
+    text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.5);
+    animation: fadeInUp 0.6s ease;
+    word-break: keep-all;
+    overflow-wrap: break-word;
 }
 
-.badge-description-large {
-    font-size: 16px;
-    opacity: 0.95;
-    line-height: 1.6;
+/* Badge Description - Positioned below village image */
+.badge-description-text {
+    position: absolute;
+    top: 59%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: #797979;
+    line-height: 1.5;
+    animation: fadeInUp 0.8s ease;
+    word-break: keep-all;
+    overflow-wrap: break-word;
 }
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Metrics Container - Positioned in middle gray box */
+.badge-metrics-container {
+    position: absolute;
+    top: 74%;
+    left: 55%;
+    transform: translateX(-50%);
+    width: 75%;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    gap: 8px;
+}
+
+.badge-metric-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+}
+
+.badge-metric-item .icon {
+    color: #8B6F47;
+}
+
+.metric-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.metric-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #333;
+}
+
+/* Summary - Positioned in bottom gray box */
+.badge-summary-text {
+    position: absolute;
+    top: 83%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 85%;
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #4a4a4a;
+    font-weight: 500;
+}
+
 
 .modal-close-btn {
     position: absolute;
@@ -752,6 +828,7 @@ body {
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
+    z-index: 10;
 }
 
 .modal-close-btn:hover {
@@ -760,6 +837,33 @@ body {
 }
 
 .modal-close-btn .icon {
+    color: white;
+}
+
+.modal-download-btn {
+    position: absolute;
+    top: var(--spacing-md);
+    right: calc(var(--spacing-md) + 44px);
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.modal-download-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+.modal-download-btn .icon {
     color: white;
 }
 
@@ -835,8 +939,16 @@ body {
 }
 
 .alert-icon {
-    font-size: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     margin-bottom: var(--spacing-md);
+}
+
+.alert-icon .icon {
+    color: #D4A574;
+    width: 64px;
+    height: 64px;
 }
 
 .alert-message {
@@ -901,12 +1013,37 @@ body {
         margin: 0 4px;
     }
 
-    .badge-emoji-large {
-        font-size: 72px;
+    .badge-card-container {
+        width: 90vw;
+        height: auto;
+        max-height: 85vh;
     }
 
-    .badge-title-large {
-        font-size: 20px;
+    .badge-title-text {
+        font-size: 16px;
+        width: 75%;
+    }
+
+    .badge-description-text {
+        font-size: 12px;
+        width: 82%;
+    }
+
+    .badge-metrics-container {
+        width: 78%;
+    }
+
+    .metric-label {
+        font-size: 9px;
+    }
+
+    .metric-value {
+        font-size: 18px;
+    }
+
+    .badge-summary-text {
+        font-size: 11px;
+        width: 78%;
     }
 }
 
