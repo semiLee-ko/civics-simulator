@@ -1,13 +1,49 @@
 // Character images mapping
-// 로우폴리 3D 고양이 캐릭터 이미지 경로
-
-export const CHARACTER_IMAGES = {
-    good: '/images/cat-good.png',      // 기쁜 표정의 고양이
-    neutral: '/images/cat-neutral.png', // 보통 표정의 고양이
-    bad: '/images/cat-bad.png'          // 슬픈/화난 표정의 고양이
+// 인터뷰 이미지 풀 (각 mood별로 10개씩)
+const IMAGE_POOL = {
+    good: Array.from({ length: 10 }, (_, i) => `/images/interview/good${i}.png`),
+    neutral: Array.from({ length: 10 }, (_, i) => `/images/interview/neutral${i}.png`),
+    bad: Array.from({ length: 10 }, (_, i) => `/images/interview/bad${i}.png`)
 };
 
-// Get character image based on mood
+// Track used images to prevent duplicates within the same simulation
+let usedImages = {
+    good: [],
+    neutral: [],
+    bad: []
+};
+
+// Reset used images (call this when starting a new simulation)
+export function resetUsedImages() {
+    usedImages = {
+        good: [],
+        neutral: [],
+        bad: []
+    };
+}
+
+// Get random character image based on mood without duplicates
 export function getCharacterImage(mood) {
-    return CHARACTER_IMAGES[mood] || CHARACTER_IMAGES.neutral;
+    // Default to neutral if mood is invalid
+    const validMood = ['good', 'neutral', 'bad'].includes(mood) ? mood : 'neutral';
+
+    // Get available images (not yet used)
+    const availableImages = IMAGE_POOL[validMood].filter(
+        img => !usedImages[validMood].includes(img)
+    );
+
+    // If all images have been used, reset the pool for this mood
+    if (availableImages.length === 0) {
+        usedImages[validMood] = [];
+        return getCharacterImage(validMood); // Recursive call with reset pool
+    }
+
+    // Pick a random image from available ones
+    const randomIndex = Math.floor(Math.random() * availableImages.length);
+    const selectedImage = availableImages[randomIndex];
+
+    // Mark this image as used
+    usedImages[validMood].push(selectedImage);
+
+    return selectedImage;
 }

@@ -1,0 +1,25 @@
+/* Custom Alert Confirm Buttons */
+.alert-buttons {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-lg);
+    justify-content: center;
+}
+
+.alert-button-cancel {
+    background: #E0E0E0;
+    color: #666;
+}
+
+.alert-button-cancel:hover {
+    background: #D0D0D0;
+}
+
+.alert-button-confirm {
+    background: linear-gradient(135deg, #FFD89B 0%, #D4A574 100%);
+    color: white;
+}
+
+.alert-button-confirm:hover {
+    background: linear-gradient(135deg, #FFD89B 0%, #C49564 100%);
+}

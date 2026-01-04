@@ -1,12 +1,24 @@
-import { defineConfig } from '@apps-in-toss/framework';
+import { defineConfig } from '@apps-in-toss/web-framework/config';
 
 export default defineConfig({
-    appId: 'civics-simulator',
-    appName: '우당탕탕 시장님',
-    appDescription: '내가 시장이 되어 마을의 규칙을 만들어보는 시민 시뮬레이터',
-    appVersion: '1.0.0',
-    entryPoint: './index.html',
-    vite: {
-        configFile: './vite.config.js'
-    }
+    appName: 'civics-simulator',
+    brand: {
+        displayName: '우당탕냥 마을',
+        primaryColor: '#D4A574ff',
+        icon: 'https://static.toss.im/appsintoss/10277/32ed1fca-0c40-44a9-a951-2f7a6a48c604.png',
+        bridgeColorMode: 'basic',
+    },
+    web: {
+        host: '0.0.0.0',
+        port: 5173,
+        commands: {
+            dev: 'vite',
+            build: 'vite build',
+        },
+    },
+    permissions: [],
+    webViewProps: {
+        type: 'partner',
+    },
+    outdir: 'dist',
 });

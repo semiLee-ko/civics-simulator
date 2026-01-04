@@ -1,12 +1,12 @@
 {
   "name": "civics-simulator",
   "version": "1.0.0",
-  "description": "우당탕탕 시장님 - 아이들을 위한 시민 시뮬레이터",
+  "description": "우당탕냥 시장님 - 아이들을 위한 정책제안 시뮬레이터",
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "granite dev",
+    "build": "granite build",
     "preview": "vite preview",
     "deploy": "ait deploy"
   },
@@ -21,10 +21,10 @@
   "dependencies": {
     "@apps-in-toss/framework": "^1.5.2",
     "@apps-in-toss/web-framework": "^1.5.2",
-    "openai": "^4.77.0",
     "firebase": "^12.6.0"
   },
   "devDependencies": {
+    "@apps-in-toss/cli": "^1.5.2",
     "vite": "^5.0.0"
   }
 }

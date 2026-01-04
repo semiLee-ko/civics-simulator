@@ -1,3 +1,16 @@
+/* Screen Reader Only - for accessibility */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
 /* Toss-style Design System */
 :root {
     --color-primary: #3182F6;
@@ -716,7 +729,7 @@ body {
 /* Badge Title - Positioned on ribbon area (below star) */
 .badge-title-text {
     position: absolute;
-    top: 54%;
+    top: 60%;
     left: 50%;
     transform: translateX(-50%);
     width: 70%;
@@ -725,7 +738,7 @@ body {
     font-weight: 800;
     color: #945617;
     text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.5);
-    animation: fadeInUp 0.6s ease;
+    animation: fadeIn 0.6s ease;
     word-break: keep-all;
     overflow-wrap: break-word;
 }
@@ -733,7 +746,7 @@ body {
 /* Badge Description - Positioned below village image */
 .badge-description-text {
     position: absolute;
-    top: 59%;
+    top: 64%;
     left: 50%;
     transform: translateX(-50%);
     width: 80%;
@@ -742,27 +755,25 @@ body {
     font-weight: 600;
     color: #797979;
     line-height: 1.5;
-    animation: fadeInUp 0.8s ease;
+    animation: fadeIn 0.8s ease;
     word-break: keep-all;
     overflow-wrap: break-word;
 }
 
-@keyframes fadeInUp {
+@keyframes fadeIn {
     from {
         opacity: 0;
-        transform: translateY(10px);
     }
 
     to {
         opacity: 1;
-        transform: translateY(0);
     }
 }
 
 /* Metrics Container - Positioned in middle gray box */
 .badge-metrics-container {
     position: absolute;
-    top: 74%;
+    top: 77%;
     left: 55%;
     transform: translateX(-50%);
     width: 75%;
@@ -801,15 +812,30 @@ body {
 /* Summary - Positioned in bottom gray box */
 .badge-summary-text {
     position: absolute;
-    top: 83%;
+    bottom: 12%;
     left: 50%;
     transform: translateX(-50%);
     width: 85%;
     text-align: center;
-    font-size: 13px;
-    line-height: 1.6;
-    color: #4a4a4a;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #4a5568;
     font-weight: 500;
+    padding: 0 10px;
+    word-break: keep-all;
+}
+
+.badge-promo-text {
+    position: absolute;
+    bottom: 3.2%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    text-align: center;
+    font-size: 10px;
+    line-height: 1.4;
+    color: #ffffff;
+    opacity: 0.8;
 }
 
 
@@ -985,66 +1011,6 @@ body {
 /* Hidden */
 .hidden {
     display: none;
-}
-
-/* Responsive */
-@media (max-width: 480px) {
-    .header-title {
-        font-size: 24px;
-    }
-
-    .random-cards {
-        grid-template-columns: 1fr;
-    }
-
-    .gauges {
-        grid-template-columns: 1fr;
-    }
-
-    .timeline {
-        padding: 0 var(--spacing-sm);
-    }
-
-    .timeline-label {
-        font-size: 10px;
-    }
-
-    .timeline-line {
-        margin: 0 4px;
-    }
-
-    .badge-card-container {
-        width: 90vw;
-        height: auto;
-        max-height: 85vh;
-    }
-
-    .badge-title-text {
-        font-size: 16px;
-        width: 75%;
-    }
-
-    .badge-description-text {
-        font-size: 12px;
-        width: 82%;
-    }
-
-    .badge-metrics-container {
-        width: 78%;
-    }
-
-    .metric-label {
-        font-size: 9px;
-    }
-
-    .metric-value {
-        font-size: 18px;
-    }
-
-    .badge-summary-text {
-        font-size: 11px;
-        width: 78%;
-    }
 }
 
 /* Page Container */
@@ -1461,5 +1427,117 @@ body {
     .citizen-character {
         width: 50px;
         height: 50px;
+    }
+}
+
+/* ---------------------------------------------------- */
+/* Level 5 Badge Custom Styling (별 5개일 때만 적용됨) */
+/* ---------------------------------------------------- */
+.badge-card-container.is-level-5 .badge-title-text {
+    top: 62%;
+}
+
+.badge-card-container.is-level-5 .badge-description-text {
+    top: 66%;
+}
+
+.badge-card-container.is-level-5 .badge-metrics-container {
+    top: 79%;
+}
+
+.badge-card-container.is-level-5 .badge-summary-text {
+    bottom: 10%;
+}
+
+.badge-card-container.is-level-5 .badge-promo-text {
+    bottom: 5.5%;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .header-title {
+        font-size: 24px;
+    }
+
+    .random-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .gauges {
+        grid-template-columns: 1fr;
+    }
+
+    .timeline {
+        padding: 0 var(--spacing-sm);
+    }
+
+    .timeline-label {
+        font-size: 10px;
+    }
+
+    .timeline-line {
+        margin: 0 4px;
+    }
+
+    .badge-card-container {
+        width: 90vw;
+        height: auto;
+        max-height: 85vh;
+    }
+
+    .badge-title-text {
+        font-size: 16px;
+        width: 75%;
+    }
+
+    .badge-description-text {
+        font-size: 12px;
+        width: 82%;
+    }
+
+    .badge-metrics-container {
+        width: 78%;
+    }
+
+    .metric-label {
+        font-size: 9px;
+    }
+
+    .metric-value {
+        font-size: 18px;
+    }
+
+    .badge-summary-text {
+        bottom: 11%;
+        font-size: 12px;
+        width: 78%;
+    }
+
+    .badge-promo-text {
+        bottom: 2.7%;
+        font-size: 10px;
+    }
+
+    /* ---------------------------------------------------- */
+    /* Level 5 Badge Custom Styling (별 5개일 때만 적용됨) */
+    /* ---------------------------------------------------- */
+    .badge-card-container.is-level-5 .badge-title-text {
+        top: 62%;
+    }
+
+    .badge-card-container.is-level-5 .badge-description-text {
+        top: 66%;
+    }
+
+    .badge-card-container.is-level-5 .badge-metrics-container {
+        top: 78.5%;
+    }
+
+    .badge-card-container.is-level-5 .badge-summary-text {
+        bottom: 9%;
+    }
+
+    .badge-card-container.is-level-5 .badge-promo-text {
+        bottom: 4.8%;
     }
 }

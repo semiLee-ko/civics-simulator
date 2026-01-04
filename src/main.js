@@ -1,9 +1,19 @@
 import './style.css';
 import './helpPopup.css';
+import './adButton.css';
+import './confirmButtons.css';
 import { simulateRule, RANDOM_RULES } from './ai.js';
 import { getIcon } from './icons.js';
-import { getCharacterImage } from './characters.js';
+import { getCharacterImage, resetUsedImages } from './characters.js';
 import blockedWordsData from './blockedWords.json';
+import {
+  prepareRewardedAd,
+  showRewardedAd,
+  canSubmitRule,
+  markResultViewed,
+  markAdWatched,
+  resetAdWatched
+} from './ads.js';
 
 // DOM Elements
 let ruleInput;
@@ -21,22 +31,29 @@ let currentPage = 'input'; // 'input' or 'result'
 // Initialize app
 function init() {
   renderInputPage();
+
+  // Preload rewarded ad for later use
+  prepareRewardedAd();
 }
 
 // Render input page
-function renderInputPage() {
+async function renderInputPage() {
   currentPage = 'input';
   const app = document.getElementById('app');
+
+  // Check if user can submit (for button icon)
+  const canSubmit = await canSubmitRule();
+
   app.innerHTML = `
     <div class="page-container input-page">
       <div class="main-image-section">
         <img src="/images/mainBg.png" alt="고양이 마을" class="main-bg-image" />
-        <button class="help-btn" id="helpBtn" title="도움말">
-          <span class="icon icon-md">${getIcon('help')}</span>
+        <button class="help-btn" id="helpBtn" aria-label="도움말 보기">
+          <span class="icon icon-md" aria-hidden="true">${getIcon('help')}</span>
         </button>
         <div class="main-image-overlay">
           <h1 class="village-name">우당탕냥 마을</h1>
-          <p class="village-subtitle">시장님, 어떤 정책을 선포할까요?</p>
+          <p class="village-subtitle">시장님, 어떤 규칙을 선포할까요?</p>
         </div>
       </div>
       
@@ -58,17 +75,19 @@ function renderInputPage() {
           
           <!-- Chat Input Area -->
           <div class="chat-input-area">
-            <button id="randomBtn" class="btn-icon" title="주제 예시">
-              <span class="icon icon-md">${getIcon('dice')}</span>
+            <button id="randomBtn" class="btn-icon" aria-label="주제 예시 보기">
+              <span class="icon icon-md" aria-hidden="true">${getIcon('dice')}</span>
             </button>
+            <label for="ruleInput" class="sr-only">규칙 입력</label>
             <textarea 
               id="ruleInput" 
               class="chat-input" 
               placeholder="규칙을 입력하세요..."
               rows="1"
+              aria-label="규칙 입력"
             ></textarea>
             <button id="simulateBtn" class="btn-send" disabled>
-              <span class="icon icon-md">${getIcon('pen')}</span>
+              <span class="icon icon-md" id="submitBtnIcon">${canSubmit ? getIcon('pen') : getIcon('video')}</span>
             </button>
           </div>
         </div>
@@ -239,7 +258,7 @@ function validateRuleInput(rule) {
   // Check allowed characters: 한글, 영어, 숫자, 허용 특수문자, 띄어쓰기
   const allowedPattern = /^[가-힣a-zA-Z0-9~!@#$%^&*()_\-+=\[\]:;,.?/\s]+$/;
   if (!allowedPattern.test(rule)) {
-    return { valid: false, message: '허용되지 않은 문자가 포함되어 있습니다!\n한글, 영어, 숫자, 일부 특수문자만 사용 가능합니다.' };
+    return { valid: false, message: '허용되지 않은 문자가 포함되어 있네요!\n한글, 영어, 숫자, 일부 특수문자만 사용 가능해요.' };
   }
 
   // Check for blocked words
@@ -256,12 +275,16 @@ function validateRuleInput(rule) {
 
 // Show custom alert modal
 function showCustomAlert(message) {
+  // Save current focus
+  const previousFocus = document.activeElement;
+
   const modal = document.createElement('div');
   modal.className = 'custom-alert-overlay';
   modal.innerHTML = `
-    <div class="custom-alert">
+    <div class="custom-alert" role="dialog" aria-modal="true" aria-labelledby="alert-title">
+      <h2 id="alert-title" class="sr-only">알림</h2>
       <div class="alert-icon">
-        <span class="icon icon-xl">${getIcon('alert')}</span>
+        <span class="icon icon-xl" aria-hidden="true">${getIcon('alert')}</span>
       </div>
       <div class="alert-message">${message.replace(/\n/g, '<br>')}</div>
       <button class="alert-button" id="alertCloseBtn">확인</button>
@@ -271,40 +294,139 @@ function showCustomAlert(message) {
   document.body.appendChild(modal);
   setTimeout(() => modal.classList.add('show'), 10);
 
-  document.getElementById('alertCloseBtn').addEventListener('click', () => {
+  // Set background inert
+  const app = document.querySelector('#app');
+  app?.setAttribute('inert', 'true');
+
+  // Focus on close button
+  const closeBtn = document.getElementById('alertCloseBtn');
+  setTimeout(() => closeBtn?.focus(), 100);
+
+  // Close function
+  const closeModal = () => {
     modal.classList.remove('show');
-    setTimeout(() => modal.remove(), 300);
-  });
+    setTimeout(() => {
+      modal.remove();
+      document.removeEventListener('keydown', handleEscape);
+      // Remove inert and restore focus
+      app?.removeAttribute('inert');
+      previousFocus?.focus();
+    }, 300);
+  };
+
+  // ESC key handler
+  const handleEscape = (e) => {
+    if (e.key === 'Escape') {
+      closeModal();
+    }
+  };
+
+  document.addEventListener('keydown', handleEscape);
+
+  closeBtn.addEventListener('click', closeModal);
 
   // Close on overlay click
   modal.addEventListener('click', (e) => {
     if (e.target === modal) {
-      modal.classList.remove('show');
-      setTimeout(() => modal.remove(), 300);
+      closeModal();
     }
+  });
+}
+
+// Show custom confirm modal
+function showCustomConfirm(message) {
+  return new Promise((resolve) => {
+    // Save current focus
+    const previousFocus = document.activeElement;
+    const modal = document.createElement('div');
+    modal.className = 'custom-alert-overlay';
+    modal.innerHTML = `
+      <div class="custom-alert" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+        <h2 id="confirm-title" class="sr-only">확인</h2>
+        <div class="alert-icon">
+          <span class="icon icon-xl" aria-hidden="true">${getIcon('alert')}</span>
+        </div>
+        <div class="alert-message">${message.replace(/\n/g, '<br>')}</div>
+        <div class="alert-buttons">
+          <button class="alert-button alert-button-cancel" id="alertCancelBtn">취소</button>
+          <button class="alert-button alert-button-confirm" id="alertConfirmBtn">광고 보기</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+    setTimeout(() => modal.classList.add('show'), 10);
+
+    // Set background inert
+    const app = document.querySelector('#app');
+    app?.setAttribute('inert', 'true');
+
+    const confirmBtn = document.getElementById('alertConfirmBtn');
+    const cancelBtn = document.getElementById('alertCancelBtn');
+
+    // Focus on confirm button
+    setTimeout(() => confirmBtn?.focus(), 100);
+
+    // Close function
+    const closeModal = (result) => {
+      modal.classList.remove('show');
+      setTimeout(() => {
+        modal.remove();
+        document.removeEventListener('keydown', handleEscape);
+        // Remove inert and restore focus
+        app?.removeAttribute('inert');
+        previousFocus?.focus();
+      }, 300);
+      resolve(result);
+    };
+
+    // ESC key handler
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        closeModal(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+
+    // Confirm button listener
+    confirmBtn.addEventListener('click', () => closeModal(true));
+
+    // Cancel button listener
+    cancelBtn.addEventListener('click', () => closeModal(false));
+
+    // Close on overlay click (cancel)
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeModal(false);
+      }
+    });
   });
 }
 
 // Show help popup
 function showHelpPopup() {
+  // Save current focus
+  const previousFocus = document.activeElement;
+
   const helpPopup = document.createElement('div');
   helpPopup.className = 'help-popup-overlay';
   helpPopup.innerHTML = `
-    <div class="help-popup">
+    <div class="help-popup" role="dialog" aria-modal="true" aria-labelledby="help-title">
       <div class="help-header">
-        <h3>도움말</h3>
-        <button class="help-close-btn" id="helpCloseBtn">
-          <span class="icon icon-md">${getIcon('close')}</span>
+        <h3 id="help-title">도움말</h3>
+        <button class="help-close-btn" id="helpCloseBtn" aria-label="도움말 닫기">
+          <span class="icon icon-md" aria-hidden="true">${getIcon('close')}</span>
         </button>
       </div>
       <div class="help-content">
         <div class="help-section">
-          <h4><span class="icon icon-sm">${getIcon('target')}</span> 게임 방법</h4>
+          <h4><span class="icon icon-sm" aria-hidden="true">${getIcon('target')}</span> 게임 방법</h4>
           <p>우당탕냥 마을의 시장이 되어 새로운 규칙을 만들어보세요!</p>
         </div>
         
         <div class="help-section">
-          <h4><span class="icon icon-sm">${getIcon('edit')}</span> 규칙 입력하기</h4>
+          <h4><span class="icon icon-sm" aria-hidden="true">${getIcon('edit')}</span> 규칙 입력하기</h4>
           <ul>
             <li>아래 입력창에 원하는 규칙을 입력하세요</li>
             <li>주사위 버튼을 눌러 예시 규칙을 볼 수 있어요</li>
@@ -313,7 +435,7 @@ function showHelpPopup() {
         </div>
         
         <div class="help-section">
-          <h4><span class="icon icon-sm">${getIcon('search')}</span> 시뮬레이션 보기</h4>
+          <h4><span class="icon icon-sm" aria-hidden="true">${getIcon('search')}</span> 시뮬레이션 보기</h4>
           <ul>
             <li>1주일 후, 1개월 후, 1년 후의 변화를 확인하세요</li>
             <li>행복도, 혼란도, 경제 지표를 살펴보세요</li>
@@ -322,7 +444,7 @@ function showHelpPopup() {
         </div>
         
         <div class="help-section">
-          <h4><span class="icon icon-sm">${getIcon('trophy')}</span> 배지 획득</h4>
+          <h4><span class="icon icon-sm" aria-hidden="true">${getIcon('trophy')}</span> 배지 획득</h4>
           <p>시뮬레이션을 완료하면 특별한 배지를 받을 수 있어요!</p>
         </div>
         
@@ -336,17 +458,43 @@ function showHelpPopup() {
   document.body.appendChild(helpPopup);
   setTimeout(() => helpPopup.classList.add('show'), 10);
 
-  // Close button listener
-  document.getElementById('helpCloseBtn').addEventListener('click', () => {
+  // Set background inert
+  const app = document.querySelector('#app');
+  app?.setAttribute('inert', 'true');
+
+  const closeBtn = document.getElementById('helpCloseBtn');
+
+  // Focus on close button
+  setTimeout(() => closeBtn?.focus(), 100);
+
+  // Close function
+  const closeModal = () => {
     helpPopup.classList.remove('show');
-    setTimeout(() => helpPopup.remove(), 300);
-  });
+    setTimeout(() => {
+      helpPopup.remove();
+      document.removeEventListener('keydown', handleEscape);
+      // Remove inert and restore focus
+      app?.removeAttribute('inert');
+      previousFocus?.focus();
+    }, 300);
+  };
+
+  // ESC key handler
+  const handleEscape = (e) => {
+    if (e.key === 'Escape') {
+      closeModal();
+    }
+  };
+
+  document.addEventListener('keydown', handleEscape);
+
+  // Close button listener
+  closeBtn.addEventListener('click', closeModal);
 
   // Close on overlay click
   helpPopup.addEventListener('click', (e) => {
     if (e.target === helpPopup) {
-      helpPopup.classList.remove('show');
-      setTimeout(() => helpPopup.remove(), 300);
+      closeModal();
     }
   });
 }
@@ -362,7 +510,42 @@ async function handleSimulate() {
     return;
   }
 
+  // Check if user can submit (daily ad limit)
+  if (!(await canSubmitRule())) {
+    // Show custom confirm for blocked users
+    const confirmed = await showCustomConfirm(
+      '하루에 한 건씩만 규칙을 선포할 수 있어요.\n광고를 보고 새로운 규칙을 선포하시겠어요?'
+    );
+
+    if (confirmed) {
+      // Show rewarded ad
+      const result = await showRewardedAd();
+      if (result.rewarded) {
+        // Mark ad watched and allow submission
+        await markAdWatched();
+        // Continue with submission
+      } else {
+        // Ad failed or cancelled
+        showCustomAlert('광고를 시청하지 못했어요.\n잠시 후 다시 시도해주세요.');
+        return;
+      }
+    } else {
+      // User cancelled
+      return;
+    }
+  }
+
   currentRule = rule;
+
+  // Reset ad watched status for next submission
+  await resetAdWatched();
+
+  // Reset phase tracking for new simulation
+  currentPhase = 1;
+  maxPhaseReached = 1;
+
+  // Reset interview image pool for new simulation
+  resetUsedImages();
 
   // Show proclamation modal
   showProclamationModal(rule);
@@ -372,12 +555,15 @@ async function handleSimulate() {
     simulationData = result;
     currentPhase = 1;
 
+    // Reset ad watched status after submitting new rule
+    resetAdWatched();
+
     // Hide proclamation and show results
     hideProclamationModal();
     renderResultPage();
   } catch (error) {
     hideProclamationModal();
-    alert('시뮬레이션 중 오류가 발생했습니다. 다시 시도해주세요.');
+    alert('시뮬레이션 중 오류가 발생했어요. 다시 시도해주세요.');
     console.error(error);
   }
 }
@@ -391,16 +577,16 @@ function showProclamationModal(rule) {
   modal.id = 'proclamationModal';
   modal.className = 'proclamation-modal';
   modal.innerHTML = `
-    <div class="proclamation-card">
+    <div class="proclamation-card" role="dialog" aria-modal="true" aria-labelledby="proclamation-title">
       <div class="proclamation-image-container">
         <img src="/images/backgroundImg.png" alt="고양이 마을 선포" class="proclamation-image" />
       </div>
       <div class="proclamation-text">
-        <h2 class="proclamation-title">시장님의 새로운 규칙!</h2>
+        <h2 class="proclamation-title" id="proclamation-title">시장님의 새로운 규칙!</h2>
         <div class="proclamation-rule"><span class="rule-highlight">"${rule}"</span></div>
         <div class="proclamation-loading">
           <div class="proclamation-spinner"></div>
-          <p>주민들에게 규칙을 선포하고<br>반응을 살피는 중...</p>
+          <p>주민들에게 규칙을 선포하고<br>반응을 살피는 중이에요...</p>
         </div>
       </div>
     </div>
@@ -427,25 +613,22 @@ function hideProclamationModal() {
 }
 
 // Render result page
-function renderResultPage() {
+async function renderResultPage() {
   currentPage = 'result';
+
+  // Mark that user viewed result page today
+  await markResultViewed();
+
   const app = document.getElementById('app');
   app.innerHTML = `
     <div class="page-container result-page">
       <div class="result-header-bar">
-        <h2 class="result-page-title">시뮬레이션 결과</h2>
-        <button class="btn-ad" id="adBtn">
-          광고 보고 다른 정책 추가
-        </button>
+        <h2 class="result-page-title" id="resultPageTitle">시뮬레이션 결과</h2>
+        <div id="headerAdBtnContainer"></div>
       </div>
       <div id="resultsContainer"></div>
     </div>
   `;
-
-  document.getElementById('adBtn').addEventListener('click', () => {
-    // TODO: Show ad and return to input page
-    renderInputPage();
-  });
 
   renderPhaseView();
 }
@@ -477,10 +660,10 @@ function renderPhaseView() {
           </div>
         </div>
         <div class="gauge">
-          <div class="gauge-label"><span class="icon icon-sm">${getIcon('alert')}</span> 혼란도</div>
-          <div class="gauge-value" data-gauge="chaos">0</div>
+          <div class="gauge-label"><span class="icon icon-sm">${getIcon('shield')}</span> 안전도</div>
+          <div class="gauge-value" data-gauge="safety">0</div>
           <div class="gauge-bar">
-            <div class="gauge-fill" data-fill="chaos" data-type="chaos" style="width: 0%;"></div>
+            <div class="gauge-fill" data-fill="safety" data-type="safety" style="width: 0%;"></div>
           </div>
         </div>
         <div class="gauge">
@@ -548,6 +731,8 @@ function renderPhaseView() {
       ` : ''}
     </div>
     
+    <!-- Ad Button for New Policy -->
+    
     <!-- Floating Navigation Buttons -->
     <div class="floating-nav">
       ${maxPhaseReached >= 3 ? `
@@ -583,6 +768,33 @@ function renderPhaseView() {
 
   if (floatingBadgeBtn) {
     floatingBadgeBtn.addEventListener('click', showBadge);
+  }
+
+  // Update header based on phase (Level 3 reached)
+  const resultPageTitle = document.getElementById('resultPageTitle');
+  const headerAdBtnContainer = document.getElementById('headerAdBtnContainer');
+
+  if (currentPhase === 3) {
+    if (resultPageTitle) resultPageTitle.style.display = 'none';
+    if (headerAdBtnContainer) {
+      headerAdBtnContainer.innerHTML = `
+        <button class="ad-policy-btn-header" id="headerAdPolicyBtn">
+          <span class="icon icon-md">${getIcon('video')}</span>
+          광고 보고 다른 규칙 추가
+        </button>
+      `;
+
+      document.getElementById('headerAdPolicyBtn')?.addEventListener('click', async () => {
+        const result = await showRewardedAd();
+        if (result.rewarded) {
+          markAdWatched();
+          renderInputPage();
+        }
+      });
+    }
+  } else {
+    if (resultPageTitle) resultPageTitle.style.display = 'block';
+    if (headerAdBtnContainer) headerAdBtnContainer.innerHTML = '';
   }
 
   // Animate gauges
@@ -651,8 +863,17 @@ function nextPhase() {
 function showBadge() {
   const { badge, phase_3, summary } = simulationData;
 
-  // Determine which level card to use based on total_score
-  const score = badge.total_score || 50; // Default to level 3 if not provided
+  // Save current focus
+  const previousFocus = document.activeElement;
+
+  // Determine which level card to use based on metrics average
+  // Calculate average of phase 3 metrics
+  const h = parseInt(phase_3.happiness) || 0;
+  const s = parseInt(phase_3.safety) || 0;
+  const w = parseInt(phase_3.wealth) || 0;
+  const avgScore = Math.round((h + s + w) / 3);
+
+  const score = avgScore;
   let levelImage = 'level3.png';
 
   if (score <= 20) levelImage = 'level1.png';
@@ -661,21 +882,23 @@ function showBadge() {
   else if (score <= 80) levelImage = 'level4.png';
   else levelImage = 'level5.png';
 
+  const isLevel5 = score > 80;
+
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.innerHTML = `
-    <div class="modal-content badge-card-container">
-      <button class="modal-download-btn" id="downloadBadgeBtn" title="배지 저장">
-        <span class="icon icon-md">${getIcon('download')}</span>
+    <div class="modal-content badge-card-container ${isLevel5 ? 'is-level-5' : ''}" role="dialog" aria-modal="true" aria-labelledby="badge-title-text">
+      <button class="modal-download-btn" id="downloadBadgeBtn" aria-label="배지 이미지 저장">
+        <span class="icon icon-md" aria-hidden="true">${getIcon('download')}</span>
       </button>
-      <button class="modal-close-btn" id="closeBadgeBtn">
-        <span class="icon icon-md">${getIcon('close')}</span>
+      <button class="modal-close-btn" id="closeBadgeBtn" aria-label="배지 닫기">
+        <span class="icon icon-md" aria-hidden="true">${getIcon('close')}</span>
       </button>
       
       <img src="/images/${levelImage}" alt="Badge Card" class="badge-card-image" />
       
       <!-- Badge Title - Positioned on ribbon below star -->
-      <div class="badge-title-text">${badge.title}</div>
+      <div class="badge-title-text" id="badge-title-text">${badge.title}</div>
       
       <!-- Badge Description - Positioned below village image -->
       <div class="badge-description-text">${badge.description}</div>
@@ -687,8 +910,8 @@ function showBadge() {
           <span class="metric-value">${phase_3.happiness}</span>
         </div>
         <div class="badge-metric-item">
-          <span class="metric-label">혼란도</span>
-          <span class="metric-value">${phase_3.chaos}</span>
+          <span class="metric-label">안전도</span>
+          <span class="metric-value">${phase_3.safety}</span>
         </div>
         <div class="badge-metric-item">
           <span class="metric-label">경제</span>
@@ -700,10 +923,19 @@ function showBadge() {
       <div class="badge-summary-text">
         ${summary}
       </div>
+      
+      <!-- Promotional text - Inside badge card -->
+      <div class="badge-promo-text">
+        우당탕냥 마을의 시장이 되어 여러가지 규칙을 세워 보세요
+      </div>
     </div>
   `;
 
   document.body.appendChild(modal);
+
+  // Set background inert
+  const app = document.querySelector('#app');
+  app?.setAttribute('inert', 'true');
 
   // Download button handler
   document.getElementById('downloadBadgeBtn').addEventListener('click', async () => {
@@ -735,40 +967,65 @@ function showBadge() {
         useCORS: true
       });
 
+      // Convert canvas to base64
+      const base64Data = canvas.toDataURL('image/png').split(',')[1]; // Remove 'data:image/png;base64,' prefix
+
+      // Use Apps-in-Toss native API to save
+      const { saveBase64Data } = await import('@apps-in-toss/web-framework');
+      await saveBase64Data({
+        data: base64Data,
+        fileName: `배지-${badge.title}.png`,
+        mimeType: 'image/png'
+      });
+
+      console.log('✅ Badge saved successfully');
+
       // Restore buttons and animations
       downloadBtn.style.display = '';
       closeBtn.style.display = '';
       if (titleText) titleText.style.animation = '';
       if (descText) descText.style.animation = '';
-
-      // Convert to blob and download
-      canvas.toBlob((blob) => {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.download = `배지-${badge.title}.png`;
-        link.href = url;
-        link.click();
-        URL.revokeObjectURL(url);
-      });
     } catch (error) {
       console.error('Download failed:', error);
       // Restore buttons even on error
       downloadBtn.style.display = '';
       closeBtn.style.display = '';
-      alert('배지 저장에 실패했습니다.');
+      showCustomAlert('배지 저장에 실패했습니다.');
     }
   });
 
-  document.getElementById('closeBadgeBtn').addEventListener('click', () => {
+  const closeBtn = document.getElementById('closeBadgeBtn');
+
+  // Focus on close button
+  setTimeout(() => closeBtn?.focus(), 100);
+
+  // Close function
+  const closeModal = () => {
     modal.classList.remove('show');
-    setTimeout(() => modal.remove(), 300);
-  });
+    setTimeout(() => {
+      modal.remove();
+      document.removeEventListener('keydown', handleEscape);
+      // Remove inert and restore focus
+      app?.removeAttribute('inert');
+      previousFocus?.focus();
+    }, 300);
+  };
+
+  // ESC key handler
+  const handleEscape = (e) => {
+    if (e.key === 'Escape') {
+      closeModal();
+    }
+  };
+
+  document.addEventListener('keydown', handleEscape);
+
+  closeBtn.addEventListener('click', closeModal);
 
   // Close on overlay click
   modal.addEventListener('click', (e) => {
     if (e.target === modal) {
-      modal.classList.remove('show');
-      setTimeout(() => modal.remove(), 300);
+      closeModal();
     }
   });
 
@@ -780,7 +1037,7 @@ function animateGaugesToPhase(phase) {
   const { phase_1, phase_2, phase_3 } = simulationData;
   const phases = [phase_1, phase_2, phase_3];
   const targetPhase = phases[phase - 1];
-  const metrics = ['happiness', 'chaos', 'wealth'];
+  const metrics = ['happiness', 'safety', 'wealth'];
 
   metrics.forEach(metric => {
     const value = targetPhase[metric];
@@ -800,17 +1057,10 @@ function animateGaugesToPhase(phase) {
 
 // Get gauge color based on type and value
 function getGaugeColor(type, value) {
-  if (type === 'chaos') {
-    // Chaos: 0-30 green, 31-70 yellow, 71-100 red
-    if (value <= 30) return '#4CAF50'; // Green
-    if (value <= 70) return '#FFC107'; // Yellow
-    return '#F44336'; // Red
-  } else {
-    // Happiness, Wealth: 0-30 red, 31-70 yellow, 71-100 green
-    if (value <= 30) return '#F44336'; // Red
-    if (value <= 70) return '#FFC107'; // Yellow
-    return '#4CAF50'; // Green
-  }
+  // Happiness, Safety, Wealth: 0-30 red, 31-70 yellow, 71-100 green
+  if (value <= 30) return '#F44336'; // Red
+  if (value <= 70) return '#FFC107'; // Yellow
+  return '#4CAF50'; // Green
 }
 
 // Animate number value
